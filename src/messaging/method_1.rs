@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::ComponentDTO;
+
 pub trait Message {
     fn msg_id(&self) -> String;
     fn msg_type(&self) -> String;
@@ -23,23 +25,6 @@ impl MessageHeader {
             msg_type: msg_type.to_string(),
             aggregate_id: aggregate_id.to_string(),
             view_id: view_id.to_string(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ComponentDTO {
-    id: String,
-    name: String,
-    description: Option<String>,
-}
-
-impl ComponentDTO {
-    pub fn new(id: &str, name: &str, description: Option<&str>) -> Self {
-        Self {
-            id: id.to_string(),
-            name: name.to_string(),
-            description: description.map(|s| s.to_string()),
         }
     }
 }
