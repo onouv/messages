@@ -12,7 +12,7 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn default() -> Self {
+    fn default() -> Self {
         Self {
             event_type: String::new(),
             aggregate_type: String::new(),
@@ -22,27 +22,27 @@ impl Event {
         }
     }
 
-    pub fn with_event_type(mut self, event_type: &str) -> Self {
+    fn with_event_type(mut self, event_type: &str) -> Self {
         self.event_type = event_type.to_string();
         self
     }
     
-    pub fn with_aggregate_type(mut self, aggregate_type: &str) -> Self {
+    fn with_aggregate_type(mut self, aggregate_type: &str) -> Self {
         self.aggregate_type = aggregate_type.to_string();
         self
     }
     
-    pub fn with_aggregate_id(mut self, id: &str) -> Self {
+    fn with_aggregate_id(mut self, id: &str) -> Self {
         self.aggregate_id = id.to_string();
         self
     }
 
-    pub fn with_view_id(mut self, id: &str) -> Self {
+    fn with_view_id(mut self, id: &str) -> Self {
         self.view_id = id.to_string();
         self
     }
 
-    pub fn with_payload<T: Serialize>(mut self, payload: T) -> Result<Self> {
+    fn with_payload<T: Serialize>(mut self, payload: T) -> Result<Self> {
         self.payload = match serde_json::to_value::<T>(payload) {
             Ok(v) => Some(v),
             Err(e) => {
