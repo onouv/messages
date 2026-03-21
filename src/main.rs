@@ -1,34 +1,23 @@
+mod adapters;
+mod application;
 mod messaging;
 
-use messaging::{ComponentCreatedMessage, ComponentDTO, Message, MessageHeader, Publisher};
-use crate::messaging::{ComponentCreatedEvent, ComponentDeletedEvent, ComponentDeletedMessage};
+use adapters::downstream::db::ComponentRepository;
+use application::ComponentService;
+use messaging::{ComponentCreatedEvent, ComponentDTO, ComponentDeletedEvent, Publisher};
+use sqlx::PgPool;
 
-static CREATED: &str = "ComponentCreated";
-static DELETED: &str = "ComponentDeleted";
+#[tokio::main]
+async fn main() {
+    demonstrate_event_messaging();
 
-fn main() {
-    method_1();
-    method_2();
+    if let Err(e) = demonstrate_component_service().await {
+        eprintln!("component service demo failed: {e}");
+    }
 }
 
-fn method_1() {
-    println!("METHOD 1: Dedicated Data Types, not useful");
-    let comp1 = ComponentDTO::new("100.001", "Door Lock", None);
-
-    let created = ComponentCreatedMessage::new(
-        MessageHeader::new("1", CREATED, "-100.001", "process"),
-        comp1,
-    );
-
-    let deleted =
-        ComponentDeletedMessage::new(MessageHeader::new("2", DELETED, "-100.001", "safety"));
-    
-    println!("{:#?}", created);
-    println!("{:#?}", deleted);
-}
-
-fn method_2() {
-    println!("METHOD 2: Json payloads");
+fn demonstrate_event_messaging() {
+    println!("demonstrating event messaging: Json payloads");
     let view = "safety";
     let component = ComponentDTO::new("-100.001", "Door Lock", None);
     let created = match ComponentCreatedEvent::to_event(component, view) {
@@ -40,7 +29,38 @@ fn method_2() {
     };
     let deleted = ComponentDeletedEvent::to_event("-200.021".to_string(), view);
 
-    let _ = Publisher::publish(created); 
-    let _ = Publisher::publish(deleted); 
+    let _ = Publisher::publish(created);
+    let _ = Publisher::publish(deleted);
+}
+
+async fn demonstrate_component_service() -> anyhow::Result<()> {
+    let database_url = match std::env::var("DATABASE_URL") {
+        Ok(v) => v,
+        Err(_) => {
+            println!("DATABASE_URL not set, skipping ComponentService outbox demo");
+            return Ok(());
+        }
+    };
+
+    let pool = PgPool::connect(&database_url).await?;
+
+    // Sprint convenience: keep demo schema creation local to this executable.
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS components (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
+
+    let repo = ComponentRepository::new(pool);
+    let service = ComponentService::new(repo, "process");
+    let created = service.create_component("-300.777", "Access Sensor").await?;
+    println!("ComponentService created component: {:?}", created);
+
+    Ok(())
 }
 
