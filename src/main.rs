@@ -4,8 +4,8 @@ mod messaging;
 
 use adapters::downstream::db::ComponentRepository;
 use application::ComponentService;
+use db_utils::init_database;
 use messaging::{ComponentCreatedEvent, ComponentDTO, ComponentDeletedEvent, Publisher};
-use db_init::init_database;
 use dotenv::dotenv;
 
 #[tokio::main]
@@ -38,7 +38,6 @@ fn demonstrate_event_messaging() {
 
 async fn demonstrate_component_service() -> anyhow::Result<()> {
 
-    // TODO: in production code, all sqlx stuff below must go to the adapters layer
     let pool = init_database().await?; 
 
     let repo = ComponentRepository::new(pool);

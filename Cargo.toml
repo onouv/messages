@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["db_init","outbox-relay"]
+members = ["db_utils","outbox-relay"]
 resolver = "2"
 
 [dependencies]
@@ -16,5 +16,5 @@ sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "uuid"
 tokio = { version = "1.48", features = ["macros", "rt-multi-thread"] }
 uuid = { version = "1.18", features = ["v4"] }
 dotenv = "0.15.0"
-db_init = { path = "db_init" }
+db_utils = { path = "db_utils" }
 env = "1.0.1"

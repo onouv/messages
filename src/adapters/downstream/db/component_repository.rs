@@ -37,6 +37,7 @@ impl ComponentRepository {
         .execute(&mut *tx)
         .await?;
 
+        // Note: triggering the publishing of events should be responsibility of the application layer, for simplicity we do it here.
         insert_outbox_event(&mut tx, outbox_id, "component", component.id(), event_type, view_id, event_payload).await?;
 
         tx.commit().await?;

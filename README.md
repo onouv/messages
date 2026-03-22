@@ -16,10 +16,10 @@ Method 2:
 ## Database Startup Initialization (No CLI)
 
 The application initializes schema automatically at startup via embedded SQLx migrations
-in `db_init`.
+in `db_utils`.
 
 - If the target database does not exist yet, it is created first.
-- Migrations live in `db_init/migrations`.
+- Migrations live in `db_utils/migrations`.
 - `init_database()` connects and runs only pending migrations.
 - No `sqlx-cli` step is required.
 
