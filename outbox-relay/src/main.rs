@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use async_nats::jetstream;
+use dotenv::dotenv;
 use serde_json::{Value, json};
 use sqlx::{PgPool, Row, postgres::PgListener};
 use tokio::time::{Duration, interval};
@@ -27,9 +28,22 @@ struct OutboxRow {
 }
 
 impl Config {
+    fn build_database_url_from_env() -> String {
+        let db_type = std::env::var("DB_TYPE").unwrap_or_else(|_| "postgres".to_string());
+        let db_host = std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
+        let db_port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
+        let db_user = std::env::var("DB_USER").unwrap_or_else(|_| "fscl".to_string());
+        let db_password = std::env::var("DB_PASSWORD").unwrap_or_else(|_| "fscl".to_string());
+        let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "process".to_string());
+
+        format!(
+            "{}://{}:{}@{}:{}/{}",
+            db_type, db_user, db_password, db_host, db_port, db_name
+        )
+    }
+
     fn from_env() -> Result<Self> {
-        let database_url = std::env::var("DATABASE_URL")
-            .context("missing DATABASE_URL environment variable")?;
+        let database_url = Self::build_database_url_from_env();
 
         let nats_url = std::env::var("NATS_URL").unwrap_or_else(|_| "nats://127.0.0.1:4222".to_string());
         let listen_channel = std::env::var("OUTBOX_NOTIFY_CHANNEL").unwrap_or_else(|_| "outbox_new".to_string());
@@ -58,6 +72,8 @@ impl Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

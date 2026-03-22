@@ -12,3 +12,17 @@ Method 2:
 - single Event data type 
 - common elements as fields in Event 
 - JSON payload for specifics
+
+## Database Startup Initialization (No CLI)
+
+The application initializes schema automatically at startup via embedded SQLx migrations
+in `db_init`.
+
+- If the target database does not exist yet, it is created first.
+- Migrations live in `db_init/migrations`.
+- `init_database()` connects and runs only pending migrations.
+- No `sqlx-cli` step is required.
+
+Environment:
+
+- Source of truth: `.env` with `DB_TYPE`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`

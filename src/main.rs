@@ -5,10 +5,13 @@ mod messaging;
 use adapters::downstream::db::ComponentRepository;
 use application::ComponentService;
 use messaging::{ComponentCreatedEvent, ComponentDTO, ComponentDeletedEvent, Publisher};
-use sqlx::PgPool;
+use db_init::init_database;
+use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+
     demonstrate_event_messaging();
 
     if let Err(e) = demonstrate_component_service().await {
@@ -34,27 +37,9 @@ fn demonstrate_event_messaging() {
 }
 
 async fn demonstrate_component_service() -> anyhow::Result<()> {
-    let database_url = match std::env::var("DATABASE_URL") {
-        Ok(v) => v,
-        Err(_) => {
-            println!("DATABASE_URL not set, skipping ComponentService outbox demo");
-            return Ok(());
-        }
-    };
 
-    let pool = PgPool::connect(&database_url).await?;
-
-    // Sprint convenience: keep demo schema creation local to this executable.
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS components (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
-        )
-        "#,
-    )
-    .execute(&pool)
-    .await?;
+    // TODO: in production code, all sqlx stuff below must go to the adapters layer
+    let pool = init_database().await?; 
 
     let repo = ComponentRepository::new(pool);
     let service = ComponentService::new(repo, "process");
@@ -63,4 +48,5 @@ async fn demonstrate_component_service() -> anyhow::Result<()> {
 
     Ok(())
 }
+
 

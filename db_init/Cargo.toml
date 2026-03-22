@@ -1,0 +1,8 @@
+[package]
+name = "db_init"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "uuid", "json", "migrate"] }
