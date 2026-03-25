@@ -15,5 +15,13 @@ services:
       - 5432:5432
     volumes:
       - ../db-data:/var/lib/postgresql/data
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+    command:
+      - "--debug"
+      - "--http_port=8222"
+      - "--js"
 networks:
   server-net: {}

@@ -42,7 +42,7 @@ async fn demonstrate_component_service() -> anyhow::Result<()> {
 
     let repo = ComponentRepository::new(pool);
     let service = ComponentService::new(repo, "process");
-    let created = service.create_component("-300.777", "Access Sensor").await?;
+    let created = service.create_component("-300.779", "Door Lock").await?;
     println!("ComponentService created component: {:?}", created);
 
     Ok(())

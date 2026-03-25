@@ -28,36 +28,34 @@ struct OutboxRow {
 }
 
 impl Config {
-    fn build_database_url_from_env() -> String {
-        let db_type = std::env::var("DB_TYPE").unwrap_or_else(|_| "postgres".to_string());
-        let db_host = std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
-        let db_port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
-        let db_user = std::env::var("DB_USER").unwrap_or_else(|_| "fscl".to_string());
-        let db_password = std::env::var("DB_PASSWORD").unwrap_or_else(|_| "fscl".to_string());
-        let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "process".to_string());
+    fn build_database_url_from_env() -> Result<String> {
+        let db_type = "postgres".to_string(); 
+        let db_host = require_env("DB_HOST")?;
+        let db_port = require_env("DB_PORT")?;
+        let db_user = require_env("DB_USER")?;
+        let db_password = require_env("DB_PASSWORD")?;
+        let db_name = require_env("DB_NAME")?;
 
-        format!(
+        Ok(format!(
             "{}://{}:{}@{}:{}/{}",
             db_type, db_user, db_password, db_host, db_port, db_name
-        )
+        ))
     }
 
     fn from_env() -> Result<Self> {
-        let database_url = Self::build_database_url_from_env();
+        let database_url = Self::build_database_url_from_env()?;
 
-        let nats_url = std::env::var("NATS_URL").unwrap_or_else(|_| "nats://127.0.0.1:4222".to_string());
-        let listen_channel = std::env::var("OUTBOX_NOTIFY_CHANNEL").unwrap_or_else(|_| "outbox_new".to_string());
-        let subject_prefix = std::env::var("OUTBOX_SUBJECT_PREFIX").unwrap_or_else(|_| "events".to_string());
+        let nats_url = require_env("NATS_URL")?;
+        let listen_channel = require_env("OUTBOX_NOTIFY_CHANNEL")?;
+        let subject_prefix = require_env("OUTBOX_SUBJECT_PREFIX")?;
 
-        let batch_size = std::env::var("OUTBOX_BATCH_SIZE")
-            .ok()
-            .and_then(|v| v.parse::<i64>().ok())
-            .unwrap_or(100);
+        let batch_size = require_env("OUTBOX_BATCH_SIZE")?
+            .parse::<i64>()
+            .context("invalid OUTBOX_BATCH_SIZE, expected integer")?;
 
-        let fallback_poll_ms = std::env::var("OUTBOX_FALLBACK_POLL_MS")
-            .ok()
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(30_000);
+        let fallback_poll_ms = require_env("OUTBOX_FALLBACK_POLL_MS")?
+            .parse::<u64>()
+            .context("invalid OUTBOX_FALLBACK_POLL_MS, expected integer")?;
 
         Ok(Self {
             database_url,
@@ -68,6 +66,10 @@ impl Config {
             fallback_poll_ms,
         })
     }
+}
+
+fn require_env(name: &str) -> Result<String> {
+    std::env::var(name).with_context(|| format!("missing required environment variable: {name}"))
 }
 
 #[tokio::main]
@@ -199,6 +201,8 @@ async fn drain_outbox(
 
         let payload = serde_json::to_vec(&event)?;
 
+        println!("Publishing to subject {}: {}", subject, String::from_utf8_lossy(&payload));
+        
         match jetstream.publish(subject, payload.into()).await {
             Ok(pub_ack_future) => match pub_ack_future.await {
                 Ok(_ack) => {

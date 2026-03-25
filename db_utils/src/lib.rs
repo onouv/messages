@@ -7,7 +7,6 @@ static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 #[derive(Debug, Clone)]
 struct DbConfig {
-    db_type: String,
     db_host: String,
     db_port: String,
     db_user: String,
@@ -16,30 +15,33 @@ struct DbConfig {
 }
 
 impl DbConfig {
-    fn from_env() -> Self {
-        Self {
-            db_type: env::var("DB_TYPE").unwrap_or_else(|_| "postgres".to_string()),
-            db_host: env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
-            db_port: env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string()),
-            db_user: env::var("DB_USER").unwrap_or_else(|_| "fscl".to_string()),
-            db_password: env::var("DB_PASSWORD").unwrap_or_else(|_| "fscl".to_string()),
-            db_name: env::var("DB_NAME").unwrap_or_else(|_| "process".to_string()),
-        }
+    fn from_env() -> anyhow::Result<Self> {
+        Ok(Self {
+            db_host: require_env("DB_HOST")?,
+            db_port: require_env("DB_PORT")?,
+            db_user: require_env("DB_USER")?,
+            db_password: require_env("DB_PASSWORD")?,
+            db_name: require_env("DB_NAME")?,
+        })
     }
 
     fn app_database_url(&self) -> String {
         format!(
             "{}://{}:{}@{}:{}/{}",
-            self.db_type, self.db_user, self.db_password, self.db_host, self.db_port, self.db_name
+            "postgres", self.db_user, self.db_password, self.db_host, self.db_port, self.db_name
         )
     }
 
     fn maintenance_database_url(&self) -> String {
         format!(
             "{}://{}:{}@{}:{}/postgres",
-            self.db_type, self.db_user, self.db_password, self.db_host, self.db_port
+            "postgres", self.db_user, self.db_password, self.db_host, self.db_port
         )
     }
+}
+
+fn require_env(name: &str) -> anyhow::Result<String> {
+    env::var(name).with_context(|| format!("missing required environment variable: {name}"))
 }
 
 fn quote_identifier(value: &str) -> String {
@@ -71,7 +73,7 @@ async fn ensure_database_exists(cfg: &DbConfig) -> anyhow::Result<()> {
 
 
 pub async fn init_database() -> anyhow::Result<PgPool> {
-    let cfg = DbConfig::from_env();
+    let cfg = DbConfig::from_env()?;
     ensure_database_exists(&cfg).await?;
 
     let database_url = cfg.app_database_url();
