@@ -27,7 +27,8 @@ Environment:
 
 This workspace includes:
 
-- a main application with
+- a main application with  
+    - a minimal cli to take user input
     - `component_service`, issuing domain events
     - a `component_repository`, persisting the `Component` domain aggregate and posting domain events into the outbox table (this is a demo short-cut, normally this should be done by the service triggering a separate outbox repository)
 - `outbox-relay`: reads pending outbox rows and publishes to JetStream.
