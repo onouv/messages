@@ -1,10 +1,11 @@
+use derive_getters::Getters;
 use serde::{Serialize};
 use serde_json::*;
 
 use super::ComponentDTO;
 
-#[derive(Serialize)]
-pub struct Event {
+#[derive(Serialize, Getters)]
+pub struct DomainEvent {
     event_type: String,
     aggregate_type: String,
     aggregate_id: String,
@@ -12,7 +13,7 @@ pub struct Event {
     payload: Option<serde_json::Value>,
 }
 
-impl Event {
+impl DomainEvent {
     fn default() -> Self {
         Self {
             event_type: String::new(),
@@ -55,17 +56,24 @@ impl Event {
     }
 }
 
-pub struct ComponentCreatedEvent {}
+pub struct ComponentCreatedEvent {
+    inner: DomainEvent,
+}
 
 impl ComponentCreatedEvent {
-    pub fn to_event(component: ComponentDTO, view_id: &str) -> Result<Event> {
-        
-        Event::default()
-            .with_event_type("created")
-            .with_aggregate_type("component")
-            .with_aggregate_id(component.id())
-            .with_view_id(view_id)
-            .with_payload::<ComponentDTO>(component)    
+    pub fn new(component: ComponentDTO, view_id: &str) -> Result<Self> {
+        Ok(Self {
+            inner: DomainEvent::default()
+                .with_event_type("created")
+                .with_aggregate_type("component")
+                .with_aggregate_id(component.id())
+                .with_view_id(view_id)
+                .with_payload::<ComponentDTO>(component)?,
+        })
+    }
+
+    pub fn to_event(self) -> DomainEvent {
+        self.inner
     } 
 }
 

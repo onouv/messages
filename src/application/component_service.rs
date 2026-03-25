@@ -19,11 +19,10 @@ impl ComponentService {
 
     pub async fn create_component(&self, id: &str, name: &str) -> Result<ComponentDTO> {
         let component = ComponentDTO::new(id, name, None);
-        let event = ComponentCreatedEvent::to_event(component.clone(), &self.view_id)?;
-        let event_payload = serde_json::to_value(&event)?;
+        let event = ComponentCreatedEvent::new(component.clone(), &self.view_id)?;
 
         self.repo
-            .create(&component, Uuid::new_v4(), "created", &self.view_id, event_payload)
+            .create(&component, event)
             .await?;
 
         Ok(component)

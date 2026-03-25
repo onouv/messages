@@ -1,7 +1,8 @@
 use anyhow::Result;
-use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
+
+use crate::messaging::DomainEvent;
 
 /// Appends one outbox row within an already-open transaction.
 ///
@@ -12,9 +13,8 @@ pub async fn insert_outbox_event(
     id: Uuid,
     aggregate_type: &str,
     aggregate_id: &str,
-    event_type: &str,
     view_id: &str,
-    payload: Value,
+    event: DomainEvent
 ) -> Result<()> {
     sqlx::query(
         r#"
@@ -25,9 +25,9 @@ pub async fn insert_outbox_event(
     .bind(id)
     .bind(aggregate_type)
     .bind(aggregate_id)
-    .bind(event_type)
+    .bind(event.event_type())
     .bind(view_id)
-    .bind(payload)
+    .bind(event.payload())
     .execute(&mut **tx)
     .await?;
 

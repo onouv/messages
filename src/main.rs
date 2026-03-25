@@ -20,7 +20,7 @@ async fn main() {
         }
     };
 
-    let repo = ComponentRepository::new(pool);
+    let repo = ComponentRepository::new(pool, "process");
     let service = ComponentService::new(repo, "process");
         
     let mut finished = false;
