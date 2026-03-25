@@ -18,3 +18,4 @@ uuid = { version = "1.18", features = ["v4"] }
 dotenv = "0.15.0"
 db_utils = { path = "db_utils" }
 env = "1.0.1"
+inquire = "0.9.4"

@@ -5,47 +5,47 @@ mod messaging;
 use adapters::downstream::db::ComponentRepository;
 use application::ComponentService;
 use db_utils::init_database;
-use messaging::{ComponentCreatedEvent, ComponentDTO, ComponentDeletedEvent, Publisher};
 use dotenv::dotenv;
+use inquire::{Select, Text};
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
-    demonstrate_event_messaging();
-
-    if let Err(e) = demonstrate_component_service().await {
-        eprintln!("component service demo failed: {e}");
-    }
-}
-
-fn demonstrate_event_messaging() {
-    println!("demonstrating event messaging: Json payloads");
-    let view = "safety";
-    let component = ComponentDTO::new("-100.001", "Door Lock", None);
-    let created = match ComponentCreatedEvent::to_event(component, view) {
-        Ok(e) => e,
+    let pool = match init_database().await {
+        Ok(pool) => pool,
         Err(e) => {
-            println!("ERROR creating ComponentCreatedEvent: {:?}", e);
+            eprintln!("Failed to initialize database: {:?}", e);
             return;
         }
     };
-    let deleted = ComponentDeletedEvent::to_event("-200.021".to_string(), view);
-
-    let _ = Publisher::publish(created);
-    let _ = Publisher::publish(deleted);
-}
-
-async fn demonstrate_component_service() -> anyhow::Result<()> {
-
-    let pool = init_database().await?; 
 
     let repo = ComponentRepository::new(pool);
     let service = ComponentService::new(repo, "process");
-    let created = service.create_component("-300.779", "Door Lock").await?;
-    println!("ComponentService created component: {:?}", created);
+        
+    let mut finished = false;
+    while !finished {
+        let commands: Vec<&str> = vec!["Add Component", "Quit"];
+        let command = Select::new("What do you want to do ?", commands).prompt();
 
-    Ok(())
+        match command {
+            Ok("Add Component") => {
+                let id = Text::new("Component Id: ").prompt();
+                if let Ok(id) = id {
+                    let name = Text::new("Component Name: ").prompt();
+                    if let Ok(name) = name {
+                        match service.create_component(id.as_str(), name.as_str()).await {
+                            Ok(component) => println!("Component created: {:?}", component),
+                            Err(e) => println!("Error creating component: {:?}", e),
+                        }
+                    }
+                }
+            }
+            _ => finished = true,
+        }
+    }
 }
+
+
 
 
