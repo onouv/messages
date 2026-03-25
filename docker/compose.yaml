@@ -1,13 +1,20 @@
-name: fscl-proc
-services: 
+name: messaging 
+services:
   db:
     image: postgres:17
-    restart: always 
+    restart: always
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: ${DB_HOST}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
     networks:
       - server-net
@@ -15,6 +22,7 @@ services:
       - 5432:5432
     volumes:
       - ../db-data:/var/lib/postgresql/data
+
   nats:
     image: nats:latest
     ports:
@@ -23,5 +31,53 @@ services:
       - "--debug"
       - "--http_port=8222"
       - "--js"
+    networks:
+      - server-net
+
+  outbox-relay:
+    image: rust:1.92
+    working_dir: /workspace
+    command: ["cargo", "run", "-p", "outbox-relay"]
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    env_file:
+      - ../.env
+    environment:
+      DB_HOST: db
+      NATS_URL: nats://nats:4222
+    volumes:
+      - ..:/workspace
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target-cache:/workspace/target
+    networks:
+      - server-net
+
+  dummy-view-service:
+    image: rust:1.92
+    working_dir: /workspace
+    command: ["cargo", "run", "-p", "dummy-view-service"]
+    depends_on:
+      - nats
+    env_file:
+      - ../.env
+    environment:
+      NATS_URL: nats://nats:4222
+    volumes:
+      - ..:/workspace
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target-cache:/workspace/target
+    networks:
+      - server-net
+
 networks:
   server-net: {}
+
+volumes:
+  cargo-registry: {}
+  cargo-git: {}
+  target-cache: {}

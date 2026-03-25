@@ -1,0 +1,15 @@
+name: messaging
+services:
+    nats:
+        image: nats:latest
+        ports:
+            - "4222:4222"
+        command:
+            - "--debug"
+            - "--http_port=8222"
+            - "--js"
+        networks:
+            - server-net
+
+networks:
+    server-net: {}

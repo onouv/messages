@@ -7,6 +7,8 @@ use tokio::time::{Duration, interval};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
+static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+
 #[derive(Debug, Clone)]
 struct Config {
     database_url: String,
@@ -89,6 +91,11 @@ async fn main() -> Result<()> {
     let pool = PgPool::connect(&cfg.database_url)
         .await
         .context("failed to connect to postgres")?;
+
+    MIGRATOR
+        .run(&pool)
+        .await
+        .context("failed to run outbox-relay migrations")?;
 
     let nats = async_nats::connect(&cfg.nats_url)
         .await

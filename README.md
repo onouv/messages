@@ -7,12 +7,12 @@ Demonstrating creation transmitting domain events between different services thr
 
 ## Database Startup Initialization (No CLI)
 
-The application initializes schema automatically at startup via embedded SQLx migrations
-in `db_utils`.
+The relay initializes outbox schema automatically at startup via embedded SQLx migrations.
 
 - If the target database does not exist yet, it is created first.
-- Migrations live in `db_utils/migrations`.
-- `init_database()` connects and runs only pending migrations.
+- Outbox migrations live in `outbox-relay/migrations`.
+- `init_database()` connects, ensures database exists, and creates the `components` table if needed.
+- `outbox-relay` applies only pending outbox migrations before it starts listening.
 - No `sqlx-cli` step is required.
 - Published outbox rows are purged by a daily DB job (retention: 1 day) when `pg_cron` is available.
 
@@ -34,14 +34,41 @@ This workspace includes:
 - `outbox-relay`: reads pending outbox rows and publishes to JetStream.
 - `dummy-view-service`: consumes those events and sends explicit JetStream acks.
 
-Run in separate terminals:
+### Run with Docker Compose
 
-1. Start NATS with JetStream enabled.
-2. Start the relay:
-	`cargo run -p outbox-relay`
-3. Start the dummy view service:
-	`cargo run -p dummy-view-service`
-4. Produce data/events from the app:
+From the project root folder,
+
+1. run `docker compose --env-file .env -f docker/compose.yaml up` This will setup the database, the `outbox-relay`, the `dummy-view-service` and the NATS/JetStream server as docker containers
+2. in a separate terminal, start the main app with `cargo run`
+3. use the interactive cli to create a component
+
+You can look into the database tables to see what was going on: 
+
+`docker exec -it messaging-db-1 bash`
+`postgres=# \c process`
+`process=# select * from components;`
+`process=# select * from outbox;`
+
+
+After testing, you should tear the system down again:   
+`docker compose -f docker/compose.yaml down`
+
+### Run in separate terminals:
+From the project root folder,
+
+1. Start the database:  
+`docker compose --env-file .env -f docker/postgres.yaml up`
+
+2. Start NATS with JetStream enabled:  
+`docker compose -f docker/nats.yaml up`  
+
+2. Start the relay:  
+	`cargo run -p outbox-relay`  
+
+3. Start the dummy view service:  
+	`cargo run -p dummy-view-service`  
+
+4. Produce data/events from the app:  
 	`cargo run -p messages`
 
 CLI traces you will see:
@@ -56,7 +83,7 @@ Optional env vars for the dummy consumer:
 - `DUMMY_VIEW_STREAM` (default `PROCESS_EVENTS`)
 - `DUMMY_VIEW_CONSUMER` (default `DUMMY_VIEW_SERVICE`)
 
-## Observe Messaging With `nats` CLI
+#### Observe Messaging With `nats` CLI
 
 Useful commands while the demo is running:
 

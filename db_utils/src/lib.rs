@@ -3,8 +3,6 @@ use std::env;
 use anyhow::{Context, anyhow};
 use sqlx::{Error as SqlxError, PgPool, postgres::PgPoolOptions};
 
-static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-
 #[derive(Debug, Clone)]
 struct DbConfig {
     db_host: String,
@@ -83,8 +81,19 @@ pub async fn init_database() -> anyhow::Result<PgPool> {
         .connect(&database_url)
         .await?;
 
-    // Migrations run at startup and only apply pending versions.
-    MIGRATOR.run(&pool).await?;
+    // Keep app schema bootstrap independent from SQLx migration history used by outbox-relay.
+    // In this demo, outbox-relay starts via docker compose  before the main application. 
+    // If we'd use migration here as well, we run into issues with colliding migration versions. 
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS components (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
 
     Ok(pool)
 }

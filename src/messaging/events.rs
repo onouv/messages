@@ -1,5 +1,6 @@
 use serde::{Serialize};
 use serde_json::*;
+
 use super::ComponentDTO;
 
 #[derive(Serialize)]
@@ -54,7 +55,6 @@ impl Event {
     }
 }
 
-
 pub struct ComponentCreatedEvent {}
 
 impl ComponentCreatedEvent {
@@ -69,7 +69,7 @@ impl ComponentCreatedEvent {
     } 
 }
 
-
+/* 
 pub struct ComponentDeletedEvent {}
 
 impl ComponentDeletedEvent {
@@ -81,3 +81,4 @@ impl ComponentDeletedEvent {
             .with_view_id(view_id)
     }
 }
+*/
